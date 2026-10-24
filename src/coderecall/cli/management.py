@@ -75,7 +75,7 @@ def doctor(
     ctx: typer.Context,
     migrate: bool = False,
     yes: bool = False,
-    languages: bool = typer.Option(
+    languages: bool = typer.Option(  # noqa: B008
         False, "--languages", help="Check installed language registry sandboxes"
     ),
 ) -> None:
@@ -158,8 +158,19 @@ def version(ctx: typer.Context) -> None:
     emit(ctx, {"version": __version__})
 
 
-def backup(ctx: typer.Context) -> None:
-    """Make an idempotent local private-state backup; source code remains in Git."""
+def backup(
+    ctx: typer.Context,
+    verify: Path | None = typer.Option(  # noqa: B008
+        None, "--verify", "-v", help="Validate a backup archive without creating or restoring"
+    ),
+) -> None:
+    """Make an idempotent local private-state backup or verify an existing backup archive."""
+    if verify:
+        from coderecall.storage.backup import verify_backup
+
+        summary = verify_backup(verify)
+        emit(ctx, summary)
+        return
     store = LocalStore(discover(Path.cwd()))
     if options(ctx).dry_run:
         emit(ctx, {"would_backup": ".coderecall/backups/"})
@@ -167,8 +178,21 @@ def backup(ctx: typer.Context) -> None:
         emit(ctx, {"backup": str(make_backup(store)), "private": True, "includes_code": False})
 
 
-def restore(ctx: typer.Context, archive: Path, yes: bool = False) -> None:
+def restore(
+    ctx: typer.Context,
+    archive: Path,
+    yes: bool = False,
+    check_only: bool = typer.Option(  # noqa: B008
+        False, "--check-only", help="Verify backup archive integrity without restoring"
+    ),
+) -> None:
     """Validate backup and preserve current state before restoring learning data."""
+    if check_only:
+        from coderecall.storage.backup import verify_backup
+
+        summary = verify_backup(archive)
+        emit(ctx, summary)
+        return
     validate_archive(archive)
     if options(ctx).dry_run:
         emit(ctx, {"valid": True, "would_restore": str(archive), "configuration": "preserved"})

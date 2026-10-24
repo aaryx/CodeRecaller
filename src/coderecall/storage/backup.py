@@ -70,6 +70,25 @@ def validate_archive(path: Path) -> bytes:
         raise ValidationError("Invalid backup archive") from exc
 
 
+def verify_backup(path: Path) -> dict[str, object]:
+    """Inspect and comprehensively validate a backup archive without modifying state."""
+    raw = validate_archive(path)
+    state = decode_state(raw)
+    with zipfile.ZipFile(path) as archive:
+        manifest = json_object(archive.read("manifest.json"))
+    return {
+        "valid": True,
+        "archive": str(path),
+        "archive_size_bytes": path.stat().st_size,
+        "schema_version": manifest.get("schema_version", 1),
+        "problems_count": len(state.problems),
+        "recalls_count": len(state.recalls),
+        "achievements_count": len(state.achievements),
+        "solutions_count": sum(len(p.solutions) for p in state.problems.values()),
+        "reviews_count": len(state.reviews),
+    }
+
+
 def restore(store: LocalStore, archive: Path) -> str:
     raw = validate_archive(archive)
     with store.lock():
