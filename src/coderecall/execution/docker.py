@@ -30,8 +30,11 @@ class DockerRunner:
         return result.stdout.strip()
 
     def run(self, source: Path) -> RunResult:
-        if source.is_symlink() or not source.is_file():
-            raise ValidationError("Sandbox accepts an existing regular file")
+        try:
+            if source.is_symlink() or not source.is_file():
+                raise ValidationError("Sandbox accepts an existing regular file")
+        except OSError as exc:
+            raise ValidationError(f"Unable to inspect sandbox script: {exc}") from exc
 
         if source.suffix != ".py":
             raise ValidationError(
