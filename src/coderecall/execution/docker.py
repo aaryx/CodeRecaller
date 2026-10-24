@@ -2,7 +2,6 @@
 
 import json
 import re
-import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,11 +9,15 @@ from coderecall.domain.errors import ProviderError, SandboxError, ValidationErro
 from coderecall.execution.runner import ResultState, RunResult
 from coderecall.integrations.process import run
 
+# Maximum script size permitted for inline container execution (64 KiB).
+# This is well below the Linux kernel MAX_ARG_STRLEN (128 KiB) to prevent execve E2BIG errors.
+MAX_INLINE_SCRIPT_BYTES = 64 * 1024
+
 
 class DockerRunner:
     def __init__(self, root: Path, image: str, timeout: int = 5):
         if (
-            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/@:-]{0,250}", image)
+            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/@:-]{0,249}", image)
             or not 1 <= timeout <= 60
         ):
             raise ValidationError("Invalid sandbox image or timeout")
@@ -27,54 +30,36 @@ class DockerRunner:
         return result.stdout.strip()
 
     def run(self, source: Path) -> RunResult:
-        allowed_exts = {
-            ".py": ("python", ["-I", "-B", "/coderecall-solution.py"]),
-            ".java": ("java", ["/coderecall-solution.java"]),
-            ".cpp": (
-                "g++",
-                [
-                    "-O2",
-                    "/coderecall-solution.cpp",
-                    "-o",
-                    "/coderecall-solution",
-                    "&&",
-                    "/coderecall-solution",
-                ],
-            ),
-            ".rs": (
-                "rustc",
-                [
-                    "/coderecall-solution.rs",
-                    "-o",
-                    "/coderecall-solution",
-                    "&&",
-                    "/coderecall-solution",
-                ],
-            ),
-        }
+        if source.is_symlink() or not source.is_file():
+            raise ValidationError("Sandbox accepts an existing regular file")
 
-        if (
-            source.suffix not in allowed_exts
-            or source.is_symlink()
-            or not source.is_file()
-            or source.stat().st_size > 2 * 1024 * 1024
-        ):
+        if source.suffix != ".py":
             raise ValidationError(
-                "Sandbox accepts an explicit Python, Java, C++, or Rust script at most 2 MiB"
+                "Docker sandbox currently supports Python (.py) scripts using a trusted "
+                "Linux Python Docker image. Other languages are not supported in the "
+                "read-only sandbox without language-specific container manifests."
             )
 
-        if source.suffix == ".py":
-            source_content = source.read_text(encoding="utf-8", errors="replace")
-            entrypoint = "python"
-            args = ["-I", "-B", "-c", source_content]
-        else:
-            entrypoint, args = allowed_exts[source.suffix]
-            # For C++ and Rust we need to run multiple commands if compiling.
-            # A simpler approach is to use sh -c.
-            if "&&" in args:
-                cmd_str = " ".join([entrypoint] + args)
-                entrypoint = "sh"
-                args = ["-c", cmd_str]
+        try:
+            size = source.stat().st_size
+        except OSError as exc:
+            raise ValidationError(f"Unable to inspect sandbox script: {exc}") from exc
+
+        if size > MAX_INLINE_SCRIPT_BYTES:
+            raise ValidationError(
+                f"Sandbox accepts Python scripts at most {MAX_INLINE_SCRIPT_BYTES // 1024} KiB"
+            )
+
+        try:
+            source_content = source.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            raise ValidationError("Sandbox script must be valid UTF-8 text") from exc
+
+        if not source_content.strip():
+            raise ValidationError("Sandbox script cannot be empty")
+
+        entrypoint = "python"
+        args = ["-I", "-B", "-c", source_content]
 
         try:
             info = json.loads(self.command("info", "--format", "{{json .}}"))
@@ -100,90 +85,79 @@ class DockerRunner:
             )
         except (ValueError, KeyError, TypeError, IndexError):
             return RunResult(ResultState.SANDBOX_ERROR, "Invalid Docker capability response")
+
         name = "coderecall-" + uuid4().hex
         created = False
         result = RunResult(ResultState.SANDBOX_ERROR, "Container did not complete")
         try:
-            with tempfile.TemporaryDirectory(prefix="coderecall-sandbox-") as temporary:
-                workspace = Path(temporary)
-                script_name = f"solution{source.suffix}"
-                script = workspace / script_name
-                script.write_bytes(source.read_bytes())
-                created = True
+            cmd = [
+                "create",
+                "--name",
+                name,
+                "--pull",
+                "never",
+                "--network",
+                "none",
+                "--read-only",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges:true",
+                "--user",
+                "65534:65534",
+                "--pids-limit",
+                "32",
+                "--memory",
+                "128m",
+                "--memory-swap",
+                "128m",
+                "--cpus",
+                "0.5",
+                "--ulimit",
+                "nofile=64:64",
+                "--ulimit",
+                "fsize=1048576:1048576",
+                "--ulimit",
+                "core=0:0",
+                "--tmpfs",
+                "/tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777",  # noqa: S108
+                "--log-driver",
+                "none",
+                "--workdir",
+                "/",
+                "--entrypoint",
+                entrypoint,
+                str(image["Id"]),
+            ] + args
 
-                cmd = [
-                    "create",
-                    "--name",
-                    name,
-                    "--pull",
-                    "never",
-                    "--network",
-                    "none",
-                    "--read-only",
-                    "--cap-drop",
-                    "ALL",
-                    "--security-opt",
-                    "no-new-privileges:true",
-                    "--user",
-                    "65534:65534",
-                    "--pids-limit",
-                    "32",
-                    "--memory",
-                    "128m",
-                    "--memory-swap",
-                    "128m",
-                    "--cpus",
-                    "0.5",
-                    "--ulimit",
-                    "nofile=64:64",
-                    "--ulimit",
-                    "fsize=1048576:1048576",
-                    "--ulimit",
-                    "core=0:0",
-                    "--tmpfs",
-                    "/tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777",  # noqa: S108
-                    "--log-driver",
-                    "none",
-                    "--workdir",
-                    "/",
-                    "--entrypoint",
-                    entrypoint,
-                    str(image["Id"]),
-                ] + args
+            self.command(*cmd)
+            created = True
 
-                self.command(*cmd)
+            self.command("start", name)
+            try:
+                exit_code = int(self.command("wait", name, timeout=self.timeout))
+            except ProviderError:
                 try:
-                    self.command("cp", str(script), f"{name}:/coderecall-{script_name}")
-                except (SandboxError, ProviderError):
-                    # In secure runtimes with a read-only rootfs, direct daemon file injection
-                    # via docker cp to rootfs is blocked; Python scripts execute via inline invocation.
-                    pass
-                self.command("start", name)
-                try:
-                    exit_code = int(self.command("wait", name, timeout=self.timeout))
-                except ProviderError:
                     self.command("kill", name)
-                    result = RunResult(ResultState.TIMEOUT, "Wall-clock limit exceeded")
-                else:
-                    status = json.loads(
-                        self.command("inspect", "--format", "{{json .State}}", name)
+                except (ProviderError, SandboxError):
+                    pass
+                result = RunResult(ResultState.TIMEOUT, "Wall-clock limit exceeded")
+            else:
+                status = json.loads(self.command("inspect", "--format", "{{json .State}}", name))
+                if status.get("OOMKilled"):
+                    result = RunResult(ResultState.MEMORY_LIMIT, "128 MiB memory limit exceeded")
+                elif exit_code == 0:
+                    result = RunResult(
+                        ResultState.PASS,
+                        "Script exited zero; only explicitly supplied assertions were checked, not general problem correctness",
                     )
-                    if status.get("OOMKilled"):
-                        result = RunResult(
-                            ResultState.MEMORY_LIMIT, "128 MiB memory limit exceeded"
-                        )
-                    elif exit_code == 0:
-                        result = RunResult(
-                            ResultState.PASS,
-                            "Script exited zero; only explicitly supplied assertions were checked, not general problem correctness",
-                        )
-                    elif exit_code == 1:
-                        result = RunResult(
-                            ResultState.FAIL,
-                            "Script failed (assertion or exception); output is discarded",
-                        )
-                    else:
-                        result = RunResult(ResultState.RUNTIME_ERROR, f"Script exited {exit_code}")
+                elif exit_code == 1:
+                    result = RunResult(
+                        ResultState.FAIL,
+                        "Script failed (assertion or exception); output is discarded",
+                    )
+                else:
+                    result = RunResult(ResultState.RUNTIME_ERROR, f"Script exited {exit_code}")
         except (ProviderError, SandboxError, ValueError, KeyError, TypeError, OSError):
             result = RunResult(
                 ResultState.SANDBOX_ERROR, "Sandbox operation failed; no host execution fallback"

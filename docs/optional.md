@@ -14,12 +14,12 @@ coderecall config set execution.image python:3.12-alpine
 coderecall run solution_with_assertions.py --yes
 ```
 
-The runner checks Linux/seccomp/resource-limit support, uses the inspected image
-ID, copies only the selected script into an unstarted container, then runs Python
-with isolated mode. It has no host mounts, network, extra capabilities or root
-user; root filesystem is read-only, temporary space is bounded, memory is 128 MiB,
+The runner checks Linux/seccomp/resource-limit support, resolves the immutable inspected image
+ID, and executes the selected Python script inline via `python -I -B -c` without daemon file
+injection on the immutable rootfs. It has no host mounts, network, extra capabilities or root
+user; root filesystem is read-only, temporary space is bounded with `noexec`, memory is 128 MiB,
 swap is disabled, CPU is 0.5, processes are limited to 32, and wall time defaults
-to five seconds (configurable 1–60). Logs are discarded to prevent output floods.
+to five seconds (configurable 1–60). Scripts are bounded to at most 64 KiB. Logs are discarded to prevent output floods.
 Cleanup removes only the uniquely named CodeRecall-owned container.
 
 PASS means the script exited zero, not that the coding problem is generally
