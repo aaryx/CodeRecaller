@@ -7,9 +7,10 @@ gracefully: the simple interval scheduler remains available as a named option.
 
 import math
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
+from coderecall.domain.clock import instant
 from coderecall.domain.models import Review, Schedule
 from coderecall.domain.validation import performance
 
@@ -23,6 +24,8 @@ class SimpleIntervalScheduler:
 
     def schedule(self, previous: Schedule, review: Review, now: datetime) -> Schedule:
         performance(review.seconds, review.attempts, review.hints, review.confidence)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=UTC)
         independent = review.success and review.hints == 0 and review.confidence >= 3
         successes = previous.successes + 1 if independent else 0
         if not review.success or review.hints >= 4 or review.confidence == 1:
@@ -181,11 +184,13 @@ class FSRSScheduler:
     def schedule(self, previous: Schedule, review: Review, now: datetime) -> Schedule:
         performance(review.seconds, review.attempts, review.hints, review.confidence)
 
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=UTC)
+
         rating = _confidence_to_rating(review.confidence, review.success, review.hints)
+        prev_due = instant(previous.next_review) if previous.next_review else now
         elapsed_days = (
-            max(0.0, (now - datetime.fromisoformat(previous.next_review)).total_seconds() / 86400.0)
-            if previous.last_review
-            else 0.0
+            max(0.0, (now - prev_due).total_seconds() / 86400.0) if previous.last_review else 0.0
         )
 
         # Calculate current retrievability
