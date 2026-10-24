@@ -289,6 +289,7 @@ class Project:
         except ValueError as exc:
             raise ValidationError("Invalid editor quoting") from exc
         arguments = [a.strip('"') for a in arguments]
+        arguments = [a for a in arguments if a]
         if not arguments:
             raise ValidationError("Editor command is empty")
         result = run(arguments[0], [*arguments[1:], str(path)], self.root, 86400, interactive=True)
@@ -848,6 +849,34 @@ def doctor(root: Path) -> dict[str, object]:
                 "check": "achievements",
                 "status": "ok",
                 "detail": f"{len(state.achievements)} unlocked",
+            }
+        )
+        backups_dir = project.store.path("backups")
+        if backups_dir.is_dir():
+            backups = list(backups_dir.glob("backup-*.zip"))
+            checks.append(
+                {
+                    "check": "backups",
+                    "status": "ok" if backups else "warning",
+                    "detail": f"{len(backups)} available"
+                    if backups
+                    else "no backups made yet (run coderecall backup)",
+                }
+            )
+        else:
+            checks.append(
+                {
+                    "check": "backups",
+                    "status": "warning",
+                    "detail": "no backups directory (run coderecall backup)",
+                }
+            )
+        journal = project.store.path("transaction.json")
+        checks.append(
+            {
+                "check": "pending transactions",
+                "status": "warning" if journal.exists() else "ok",
+                "detail": "unrecovered transaction pending" if journal.exists() else "none",
             }
         )
     except (CodeRecallError, OSError) as exc:
