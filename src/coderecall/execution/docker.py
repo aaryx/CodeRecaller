@@ -63,13 +63,18 @@ class DockerRunner:
                 "Sandbox accepts an explicit Python, Java, C++, or Rust script at most 2 MiB"
             )
 
-        entrypoint, args = allowed_exts[source.suffix]
-        # For C++ and Rust we need to run multiple commands if compiling.
-        # A simpler approach is to use sh -c.
-        if "&&" in args:
-            cmd_str = " ".join([entrypoint] + args)
-            entrypoint = "sh"
-            args = ["-c", cmd_str]
+        if source.suffix == ".py":
+            source_content = source.read_text(encoding="utf-8", errors="replace")
+            entrypoint = "python"
+            args = ["-I", "-B", "-c", source_content]
+        else:
+            entrypoint, args = allowed_exts[source.suffix]
+            # For C++ and Rust we need to run multiple commands if compiling.
+            # A simpler approach is to use sh -c.
+            if "&&" in args:
+                cmd_str = " ".join([entrypoint] + args)
+                entrypoint = "sh"
+                args = ["-c", cmd_str]
 
         try:
             info = json.loads(self.command("info", "--format", "{{json .}}"))
@@ -147,7 +152,12 @@ class DockerRunner:
                 ] + args
 
                 self.command(*cmd)
-                self.command("cp", str(script), f"{name}:/coderecall-{script_name}")
+                try:
+                    self.command("cp", str(script), f"{name}:/coderecall-{script_name}")
+                except (SandboxError, ProviderError):
+                    # In secure runtimes with a read-only rootfs, direct daemon file injection
+                    # via docker cp to rootfs is blocked; Python scripts execute via inline invocation.
+                    pass
                 self.command("start", name)
                 try:
                     exit_code = int(self.command("wait", name, timeout=self.timeout))
