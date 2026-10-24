@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "coderecall"
+dynamic = ["version"]
+description = "Solve. Commit. Recall. Improve. Local-first coding practice memory."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "CodeRecall contributors"}]
+dependencies = ["typer>=0.21,<0.22", "click>=8.1,<9", "rich>=13.9,<15"]
+classifiers = ["Environment :: Console", "Operating System :: OS Independent", "Programming Language :: Python :: 3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.11", "mypy>=1.15", "build>=1.2", "pip-audit>=2.8", "pre-commit>=4"]
+
+[project.scripts]
+coderecall = "coderecall.cli:main"
+
+[tool.hatch.version]
+path = "src/coderecall/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/coderecall"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S"]
+ignore = ["E501", "S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S106"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["coderecall"]
+mypy_path = "src"
