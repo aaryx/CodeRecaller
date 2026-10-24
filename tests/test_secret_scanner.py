@@ -27,10 +27,10 @@ from coderecall.integrations.git import SECRET, LocalGitProvider, SyncPlan
         "xoxb-" + "123456789012-1234567890123-abcdef123456",
         "sk_" + "live_" + "1234567890abcdef12345678",
         "rk_" + "live_" + "1234567890abcdef12345678",
-        "api_" + "key = \"abcdef1234567890\"",
+        "api_" + 'key = "abcdef1234567890"',
         "token: '" + "super_secret_token_value_here'",
-        "pass" + "word=\"production_password_xyz123\"",
-        "auth_" + "token = \"auth_token_value_here_1234\"",
+        "pass" + 'word="production_password_xyz123"',
+        "auth_" + 'token = "auth_token_value_here_1234"',
     ],
 )
 def test_secret_scanner_detects_credentials(secret_sample):
