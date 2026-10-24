@@ -26,10 +26,14 @@ class SyncPlan:
 
 
 SECRET = re.compile(
-    r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"
+    r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----|"
     r"(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})|"
-    r"AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|"
-    r"(?i:(?:api[_-]?key|password|secret|token)\s*[:=]\s*['\"])[^'\"\s]{12,}"
+    r"(?:AKIA|ASIA)[0-9A-Z]{16}|"
+    r"sk-(?:ant-)?[A-Za-z0-9_-]{20,}|"
+    r"hf_[A-Za-z0-9]{30,}|"
+    r"xox[baprs]-[0-9A-Za-z]{10,48}|"
+    r"(?:sk|rk)_live_[0-9a-zA-Z]{24}|"
+    r"(?i:(?:api[_-]?key|password|secret|token|auth[_-]?token)\s*[:=]\s*['\"])[^'\"\s]{12,}"
 )
 
 
