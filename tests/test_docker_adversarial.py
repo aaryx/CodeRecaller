@@ -107,6 +107,27 @@ def test_docker_runner_rejects_non_utf8_binary(tmp_path):
         runner.run(binary)
 
 
+def test_docker_runner_rejects_embedded_null_byte(tmp_path):
+    runner = make_runner(tmp_path)
+    null_script = tmp_path / "null.py"
+    null_script.write_bytes(b"print('hello')\x00print('world')")
+    with pytest.raises(ValidationError, match="must not contain null bytes"):
+        runner.run(null_script)
+
+
+def test_docker_runner_read_text_oserror_raises_validation_error(tmp_path, monkeypatch):
+    runner = make_runner(tmp_path)
+    script = tmp_path / "script.py"
+    script.write_text("print('test')", encoding="utf-8")
+
+    def broken_read(*args, **kwargs):
+        raise OSError("Permission denied reading file content")
+
+    monkeypatch.setattr(Path, "read_text", broken_read)
+    with pytest.raises(ValidationError, match="Unable to inspect sandbox script"):
+        runner.run(script)
+
+
 def test_docker_runner_command_failure_raises_sandbox_error(tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 

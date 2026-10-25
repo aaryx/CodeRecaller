@@ -57,6 +57,11 @@ class DockerRunner:
             source_content = source.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
             raise ValidationError("Sandbox script must be valid UTF-8 text") from exc
+        except OSError as exc:
+            raise ValidationError(f"Unable to inspect sandbox script: {exc}") from exc
+
+        if "\x00" in source_content:
+            raise ValidationError("Sandbox script must not contain null bytes")
 
         if not source_content.strip():
             raise ValidationError("Sandbox script cannot be empty")

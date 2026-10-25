@@ -143,4 +143,48 @@
 
 ## Phase 11: Final Assurance Report & Scorecard
 - Compiled comprehensive documentation in `docs/verification/verification-matrix.md` and `docs/verification/final-assurance-report.md`.
-- Overall Engineering Portfolio Defensibility Rating: **9.3 / 10**.
+- Overall Engineering Portfolio Defensibility Rating: **9.37 / 10**.
+
+---
+
+## Mission 4: Real-World Validation & Release-Grade Engineering
+
+### Phase 1: Baseline Verification on Commit `2fbf276`
+- Confirmed Git state clean on `main` tracked to `origin/main`.
+- Verified GitHub Actions CI run `40166154720` passed all 11 matrix jobs.
+- Verified live Docker execution on Ubuntu runner in job `121087508821` (12 passed in 3.21s against `python:3.12-alpine`).
+- Ran complete baseline suite: 259 passed, 2 skipped, 0 failed.
+
+### Phase 2: Independent Security Review & Defect Remediation
+- **Terminal Unicode Resilience (Issue 1)**:
+  - Discovered crash on Windows terminals (`cp1252`) when outputting non-ASCII Unicode characters in JSON mode (`ensure_ascii=False`).
+  - Implemented RFC 8259 ASCII escape fallback in `src/coderecall/cli/output.py:emit()`.
+  - Removed debug stack trace print (`traceback.print_exc()`) in CLI exception handler.
+  - Added regression tests `test_emit_json_unicode_fallback` and `test_cli_unicode_problem_and_search` in `tests/test_cli_comprehensive.py`.
+- **Docker Runner Input Validation (Issue 2)**:
+  - Discovered that embedded null bytes (`\x00`) in script files triggered `ValueError` in `subprocess.Popen` instead of early input rejection.
+  - Discovered `source.read_text()` did not catch `OSError` (e.g. permission failures).
+  - Added early boundary validation for `\x00` and wrapped `read_text` in `ValidationError`.
+  - Added adversarial tests `test_docker_runner_rejects_embedded_null_byte` and `test_docker_runner_read_text_oserror_raises_validation_error` in `tests/test_docker_adversarial.py`.
+- **Documentation Accuracy (Issue 3)**:
+  - Corrected `README.md` to remove inaccurate references to external `filelock` and `.journal.json`. Documented built-in `msvcrt`/`fcntl` locking and `transaction.json`.
+
+### Phase 3: Real-World Developer Journey Validation
+- Created and executed adversarial end-to-end journey script across 15 workflow steps inside a workspace with space characters (`"practice project with spaces"`):
+  - `help` -> `doctor` (uninitialized check) -> `init --yes` -> `init` idempotency -> `add` with Chinese Unicode title & space paths -> `search` -> `problems --topic` -> `revise` -> `recall submit` -> `stats` -> `today` -> `backup` -> `restore --check-only` -> `export` (json, md, csv, html) -> `restore --yes` -> invalid input rejection.
+  - All 15 steps passed cleanly.
+
+### Phase 4: Performance & Scale Benchmarks (Up to 10,000 Records)
+- Tested with `scripts/benchmark_state.py` across 10, 100, 1,000, and 10,000 records:
+  - 10 problems (8.9 KB): Write 23.8ms, Read 6.6ms, Search 11.8ms, Stats 11.2ms
+  - 100 problems (87.8 KB): Write 21.5ms, Read 10.0ms, Search 14.7ms, Stats 15.1ms
+  - 1,000 problems (879.8 KB): Write 87.2ms, Read 44.1ms, Search 57.7ms, Stats 55.8ms
+  - 10,000 problems (8.82 MB): Write 904.7ms, Read 481.0ms, Search 521.8ms, Stats 576.5ms
+  - Confirmed strictly sub-second operation latencies across all scales.
+
+### Phase 5: Final Release Gates
+- Test Suite: 265 total tests (263 passed, 2 skipped, 0 failed).
+- Core branch coverage: 89%–100%.
+- Linters & Types: `ruff check .` (0 errors), `ruff format --check .` (74 files), `mypy` (0 errors in 38 files).
+- Packaging: Clean Hatchling wheel and sdist build; clean venv install via `scripts/validate_install.py` with console launcher passed.
+- Vulnerabilities: `pip-audit --skip-editable` confirmed zero known vulnerabilities.

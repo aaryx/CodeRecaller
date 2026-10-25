@@ -71,10 +71,6 @@ def main() -> None:
             if isinstance(exc, (CodeRecallError, click.ClickException))
             else "Filesystem/encoding operation failed; local data preserved. Check permissions and paths"
         )
-        if isinstance(exc, UnicodeError):
-            import traceback
-
-            traceback.print_exc()
         if json_mode:
             typer.echo(
                 json.dumps(

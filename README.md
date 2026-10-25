@@ -35,8 +35,8 @@ flowchart TD
 
     subgraph Storage["Storage & Safety Layer"]
         LocalStore["Local Snapshot Store (Atomic Replacement)"]
-        Journal["Write-Ahead Journal (.journal.json)"]
-        Lock["Advisory File Locking (filelock)"]
+        Journal["Write-Ahead Journal (transaction.json)"]
+        Lock["Cross-Platform Locking (msvcrt / fcntl)"]
         BackupMgr["Backup & Restore Safety Engine"]
     end
 
@@ -96,7 +96,7 @@ flowchart TD
 - **Git-Native Solution Versioning**: Automatic, selective Git commits that stage **only** problem-owned solution files. Unrelated user edits are never staged or committed.
 - **Commit-Time Secret Scanning**: Integrated regex scanning checks outgoing commits for inadvertent tokens, private keys, or API credentials before Git staging occurs.
 - **Terminal Encoding Resilience**: Auto-detecting output engine supports modern UTF-8 terminals with Rich panels and emojis, while falling back gracefully to clean ASCII borders (`+---+`) and progress bars on legacy Windows terminals (`CP1252`).
-- **Transaction Safety & Crash Recovery**: State updates use write-ahead transaction logging (`.journal.json`), atomic file replacement (`replace_atomic`), and advisory file locking (`filelock`) to prevent corruption during unexpected shutdowns.
+- **Transaction Safety & Crash Recovery**: State updates use write-ahead transaction logging (`transaction.json`), atomic file replacement (`atomic_write`), and cross-platform file locking (`msvcrt` on Windows / `fcntl` on POSIX) to prevent corruption during unexpected shutdowns.
 - **Local Analytics & Reports**: Track UTC streaks, forgetting curves, topic recall rates, and solve velocity. Export reports to JSON, Markdown, CSV, or standalone self-contained HTML.
 - **Optional Sandboxed Execution**: Run Python solutions inside ephemeral, isolated Docker containers configured with dropped Linux capabilities, read-only root mounts, memory caps, and zero network access.
 
@@ -118,7 +118,7 @@ CodeRecaller is designed for:
 - **Language**: Python 3.11+
 - **CLI Framework**: [Typer](https://typer.tiangolo.com/) & [Click](https://click.palletsprojects.com/)
 - **Terminal UI**: [Rich](https://rich.readthedocs.io/)
-- **Concurrency & Locking**: [filelock](https://py-filelock.readthedocs.io/)
+- **Concurrency & Locking**: Built-in OS advisory locking (`msvcrt` on Windows, `fcntl` on POSIX)
 - **Build Backend**: [Hatchling](https://hatch.pypa.io/)
 - **Testing & Quality**: [Pytest](https://docs.pytest.org/), [Ruff](https://astral.sh/ruff), [Mypy](https://mypy.readthedocs.io/) (strict mode)
 
@@ -274,7 +274,7 @@ CodeRecaller treats Git as the single source of truth for your code, but protect
 | **Review Schedules & Stability** | `.coderecall/state.json` | **No** (Strictly Ignored) |
 | **Private Attempt Workspaces** | `.coderecall/workspaces/` | **No** (Strictly Ignored) |
 | **Private Mistake Notes** | `.coderecall/state.json` | **No** (Strictly Ignored) |
-| **Transaction Journal** | `.coderecall/.journal.json` | **No** (Strictly Ignored) |
+| **Transaction Journal** | `.coderecall/transaction.json` | **No** (Strictly Ignored) |
 
 ### Backup and Restore
 
@@ -337,8 +337,8 @@ To execute and verify code in an isolated environment without host permissions:
 
 1. **Zero External Telemetry**: CodeRecaller makes zero outbound network requests during normal operation.
 2. **Path Traversal Protection**: All file lookups and archive imports enforce strict `is_relative_to` containment checks against the project root.
-3. **Advisory Locking**: High-concurrency operations acquire OS file locks (`filelock`) on `.coderecall/state.lock`.
-4. **Crash Recovery**: Write operations maintain a write-ahead journal (`.journal.json`). Unfinished operations rollback cleanly on subsequent startup.
+3. **Advisory Locking**: High-concurrency operations acquire OS file locks (`msvcrt` on Windows / `fcntl` on POSIX) on `.coderecall/state.lock`.
+4. **Crash Recovery**: Write operations maintain a write-ahead journal (`transaction.json`). Unfinished operations recover cleanly on subsequent startup.
 
 ---
 

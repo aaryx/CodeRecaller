@@ -463,3 +463,57 @@ def test_output_confirm_and_quiet(project, capture, monkeypatch):
     # Quiet emit suppresses output
     ctx.obj = Options(quiet=True)
     emit(ctx, "should not raise or print")
+
+
+def test_emit_json_unicode_fallback(monkeypatch):
+    import click
+
+    from coderecall.cli.output import Options, emit
+
+    ctx = click.Context(click.Command("test"))
+    ctx.obj = Options(json=True)
+
+    calls = []
+    original_echo = click.echo
+
+    def mock_echo(msg, *args, **kwargs):
+        calls.append(msg)
+        if len(calls) == 1 and any(ord(c) > 127 for c in msg):
+            raise UnicodeEncodeError("charmap", "\u5169", 0, 1, "character maps to undefined")
+        original_echo(msg, *args, **kwargs)
+
+    monkeypatch.setattr("typer.echo", mock_echo)
+    emit(ctx, {"title": "Two Sum (\u5169\u6578\u4e4b\u548c)"})
+    assert len(calls) == 2
+    # Second call must be valid ASCII escaped JSON
+    assert "\\u5169" in calls[1]
+    parsed = json.loads(calls[1])
+    assert parsed["title"] == "Two Sum (\u5169\u6578\u4e4b\u548c)"
+
+
+def test_cli_unicode_problem_and_search(project, tmp_path, monkeypatch):
+    monkeypatch.chdir(project.root)
+    source = project.root / "solution.py"
+    source.write_text("def solve(): return 42\n", encoding="utf-8")
+
+    res_add = runner.invoke(
+        app,
+        [
+            "--json",
+            "add",
+            "--title",
+            "Two Sum (\u5169\u6578\u4e4b\u548c)",
+            "--file",
+            str(source),
+            "--no-commit",
+        ],
+    )
+    assert res_add.exit_code == 0
+    added = json.loads(res_add.output)
+    assert "problem_id" in added
+
+    res_search = runner.invoke(app, ["--json", "search", "\u5169\u6578"])
+    assert res_search.exit_code == 0
+    results = json.loads(res_search.output)
+    assert len(results) == 1
+    assert results[0]["title"] == "Two Sum (\u5169\u6578\u4e4b\u548c)"

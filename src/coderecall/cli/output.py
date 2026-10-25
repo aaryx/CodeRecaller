@@ -30,7 +30,10 @@ def options(ctx: typer.Context) -> Options:
 def emit(ctx: typer.Context, value: object) -> None:
     opts = options(ctx)
     if opts.json:
-        typer.echo(json.dumps(value, ensure_ascii=False, allow_nan=False))
+        try:
+            typer.echo(json.dumps(value, ensure_ascii=False, allow_nan=False))
+        except UnicodeEncodeError:
+            typer.echo(json.dumps(value, ensure_ascii=True, allow_nan=False))
         return
     if opts.quiet:
         return
