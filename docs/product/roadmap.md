@@ -26,7 +26,7 @@ Work items are organized into four prioritized categories:
 | Item | Problem Addressed | Status |
 | :--- | :--- | :--- |
 | **Unified Release Gate** | Lack of a single automated command to verify git cleanliness, lint, format, types, tests, builds, and clean installs. | **Delivered** in `scripts/release_gate.py`. |
-| **Windows CP1252 Terminal Normalization** | Unicode en-dashes (`–`) and em-dashes (`—`) in CLI docstrings rendered as replacement characters (``) on default Windows consoles. | **Delivered** in `coderecall.cli`. |
+| **Windows Console Encoding Normalization** | Unicode en-dashes (`–`) and em-dashes (`—`) in CLI docstrings caused charmap codec crashes on Windows OEM CP437 consoles and glyph corruption on CP1252. | **Delivered** in `coderecall.cli`. |
 | **Docker Runner Input Boundary Validation** | Embedded null bytes (`\x00`) in scripts triggered raw `ValueError` in `subprocess.Popen` rather than early rejection. | **Delivered** in `coderecall.execution.docker`. |
 | **Clean Packaging & Entry Point Verification** | Wheel installation needed automated validation outside the repository in an isolated environment. | **Delivered** in `scripts/validate_install.py`. |
 
@@ -102,4 +102,4 @@ Work items are organized into four prioritized categories:
 
 ## Roadmap Review Schedule
 
-This roadmap is reviewed quarterly by maintainers against user feedback, issue trends, and performance telemetry (collected via explicit user bug reports and surveys, never automated tracking).
+This roadmap is reviewed quarterly by maintainers against user feedback, issue trends, and community input (collected via explicit user bug reports and trial feedback forms, never automated tracking).

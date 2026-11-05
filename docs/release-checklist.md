@@ -23,7 +23,7 @@ Verify that all gates pass:
 - [ ] **Static Type Safety**: `mypy src` passes in strict mode.
 - [ ] **Regression Test Suite**: `pytest` passes all test cases (0 failures).
 - [ ] **Dependency Security**: `pip-audit --skip-editable` reports 0 known vulnerabilities.
-- [ ] **Package Build**: `python -m build --no-isolation` successfully builds wheel (`.whl`) and source distribution (`.tar.gz`).
+- [ ] **Package Build**: `python -m build` successfully builds wheel (`.whl`) and source distribution (`.tar.gz`).
 - [ ] **Clean Installation Validation**: `python scripts/validate_install.py` installs the built wheel in an isolated temporary virtual environment and executes the CLI lifecycle.
 
 ---

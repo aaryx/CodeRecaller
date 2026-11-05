@@ -1,6 +1,6 @@
 # CodeRecaller Verification & Adversarial Assurance Progress Log
 
-**Workspace:** `D:\Project\CodeRecaller`  
+**Workspace:** `CodeRecaller` (repository root)  
 **Repository:** `https://github.com/aaryx/CodeRecaller`  
 **Baseline Commit:** `4819daa235e241e14d0d971028b1a0da0127f325`  
 **Verification Date:** 2026-10-25  

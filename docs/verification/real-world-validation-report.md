@@ -2,7 +2,7 @@
 
 **Project:** CodeRecaller  
 **Repository:** [https://github.com/aaryx/CodeRecaller](https://github.com/aaryx/CodeRecaller)  
-**Workspace:** `D:\Project\CodeRecaller`  
+**Workspace:** `CodeRecaller` (repository root)  
 **Current Version:** `0.3.0`  
 **Baseline Commit:** `2fbf276`  
 **Auditor Roles:** Principal Software Engineer, Open-Source Maintainer, QA Architect, Security Reviewer, Release Engineer  

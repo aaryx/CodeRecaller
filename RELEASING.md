@@ -21,7 +21,7 @@ The release gate verifies:
 - [x] Mypy strict type checking passes (`mypy src`).
 - [x] Pytest regression test suite passes completely.
 - [x] Dependency vulnerability audit passes (`pip-audit --skip-editable`).
-- [x] Wheel and source distribution build successfully without isolation.
+- [x] Wheel and source distribution build successfully via `python -m build`.
 - [x] Clean-environment installation and CLI acceptance test passes (`scripts/validate_install.py`).
 - [x] GitHub Actions CI matrix on `main` is 100% green.
 
@@ -75,7 +75,7 @@ Build fresh, reproducible distribution packages from the tagged release commit:
 rm -rf dist/ build/ *.egg-info
 
 # Build sdist and wheel
-python -m build --no-isolation
+python -m build
 
 # Generate SHA-256 checksums
 # Linux/macOS:
