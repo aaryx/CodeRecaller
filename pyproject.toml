@@ -14,7 +14,7 @@ dependencies = ["typer>=0.21,<0.22", "click>=8.1,<9", "rich>=13.9,<15"]
 classifiers = ["Environment :: Console", "Operating System :: OS Independent", "Programming Language :: Python :: 3"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "ruff>=0.11", "mypy>=1.15", "build>=1.2", "pip-audit>=2.8", "pre-commit>=4"]
+dev = ["pytest>=8,<10", "ruff>=0.11", "mypy>=1.15", "build>=1.2", "pip-audit>=2.8", "pre-commit>=4", "msgpack>=1.2.4"]
 
 [project.scripts]
 coderecall = "coderecall.cli:main"

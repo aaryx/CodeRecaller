@@ -12,7 +12,7 @@ from coderecall.cli.output import Options
 from coderecall.domain.errors import CodeRecallError
 
 app = typer.Typer(
-    help="CodeRecall — Solve. Commit. Recall. Improve.",
+    help="CodeRecall - Solve. Commit. Recall. Improve.",
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     add_completion=False,

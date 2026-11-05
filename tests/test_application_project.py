@@ -279,6 +279,10 @@ def test_hints_and_mistakes(project, capture):
     assert problem.hints[0] == "No user hint recorded for this level"
     assert problem.hints[1] == "Hint 2 text"
 
+    # Hint is searchable
+    matched = project.list_problems(query="Hint 2 text")
+    assert any(m.id == p.id for m in matched)
+
     # Mistake validation
     with pytest.raises(ValidationError, match="Provide text and severity"):
         project.add_mistake(p.id, "", "logic", "medium")

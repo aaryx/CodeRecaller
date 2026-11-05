@@ -5,6 +5,13 @@ title: ''
 labels: bug
 ---
 
+<!--
+Note: If reporting a suspected security vulnerability or credential exposure,
+please do NOT open a public issue. Report privately via:
+https://github.com/aaryx/CodeRecaller/security/advisories/new
+See SECURITY.md for details.
+-->
+
 ## Expected and actual behavior
 
 ## Reproduction using a temporary project

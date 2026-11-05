@@ -95,6 +95,7 @@ class Project:
                         *p.patterns,
                         *p.tags,
                         *p.notes,
+                        *p.hints,
                         *(s.language for s in p.solutions),
                         *(s.approach for s in p.solutions),
                     ]

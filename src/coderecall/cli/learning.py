@@ -217,7 +217,7 @@ def active_flow(ctx: typer.Context, id: str, mode: str, minutes: int) -> None:
             emit(ctx, project.recall.pause(rid, action == "c"))
         elif action == "s":
             success = typer.confirm("Solved successfully? (self-assessment)", err=True)
-            confidence = typer.prompt("Confidence (1–5)", type=int, err=True)
+            confidence = typer.prompt("Confidence (1-5)", type=int, err=True)
             attempts = typer.prompt("Attempts", default=1, type=int, err=True)
             approach = (
                 typer.prompt("Explain your approach", err=True) if mode == "interview" else ""

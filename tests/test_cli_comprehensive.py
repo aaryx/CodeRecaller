@@ -517,3 +517,11 @@ def test_cli_unicode_problem_and_search(project, tmp_path, monkeypatch):
     results = json.loads(res_search.output)
     assert len(results) == 1
     assert results[0]["title"] == "Two Sum (\u5169\u6578\u4e4b\u548c)"
+
+
+def test_cli_help_ascii_clean():
+    res = runner.invoke(app, ["--help"])
+    assert res.exit_code == 0
+    # Confirm app help contains clean ASCII hyphen without legacy encoding replacement characters
+    assert "CodeRecall - Solve. Commit. Recall. Improve." in res.output
+    assert "\ufffd" not in res.output

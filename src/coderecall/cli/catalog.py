@@ -238,7 +238,7 @@ def edit(ctx: typer.Context, id: str) -> None:
 
 
 def note(ctx: typer.Context, id: str, text: str = "", hint_level: int = 0) -> None:
-    """Append a private note or set a private hint level (1–4)."""
+    """Append a private note or set a private hint level (1-4)."""
     project = Project()
     if not text:
         emit(ctx, {"notes": identify(project.store.read(), id).notes})

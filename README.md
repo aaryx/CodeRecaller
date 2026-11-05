@@ -133,24 +133,28 @@ CodeRecaller is designed for:
 
 ### Installation
 
-Install CodeRecaller using [pipx](https://github.com/pypa/pipx) for an isolated global CLI installation:
+Install CodeRecaller using [pipx](https://github.com/pypa/pipx) directly from GitHub for an isolated global CLI installation:
 
 ```console
-pipx install coderecall
+# Recommended: Install globally with pipx
+pipx install git+https://github.com/aaryx/CodeRecaller.git
+
+# Or install upon PyPI publication:
+# pipx install coderecall
 ```
 
-Or install directly from the repository checkout:
+Or clone and install in an active Python 3.11+ environment:
 
 ```console
 git clone https://github.com/aaryx/CodeRecaller.git
 cd CodeRecaller
-python -m pip install .
+pip install .
 ```
 
-For local development:
+For local development and contributing:
 
 ```console
-python -m pip install -e ".[dev]"
+pip install -e ".[dev]"
 ```
 
 Verify the installation:
@@ -166,7 +170,7 @@ coderecall --version
 Get up and running in under two minutes:
 
 ```console
-# 1. Create and enter your solutions repository
+# 1. Create and enter your practice repository
 mkdir my-practice
 cd my-practice
 git init
@@ -175,6 +179,7 @@ git init
 coderecall init
 
 # 3. Add your first solution
+# On Linux/macOS:
 cat << 'EOF' > two_sum.py
 def twoSum(nums, target):
     seen = {}
@@ -185,6 +190,18 @@ def twoSum(nums, target):
         seen[num] = i
     return []
 EOF
+
+# On Windows PowerShell:
+# Set-Content two_sum.py @"
+# def twoSum(nums, target):
+#     seen = {}
+#     for i, num in enumerate(nums):
+#         complement = target - num
+#         if complement in seen:
+#             return [seen[complement], i]
+#         seen[num] = i
+#     return []
+# "@
 
 coderecall add --file two_sum.py --title "Two Sum" --external-id 1 --platform leetcode --topics array,hash-table
 
@@ -212,7 +229,7 @@ CodeRecaller provides a comprehensive set of subcommands. Global flags (`--json`
 | | `coderecall random` | Select a practice problem; `--seed` ensures deterministic selection. |
 | **Active Recall** | `coderecall revise [id]` | Begin active recall. Hides original code and prepares blank workspace. |
 | | `coderecall recall submit <id>` | Submit self-assessment (`--result pass/fail`, `--confidence 1-4`, `--seconds`). |
-| | `coderecall recall compare <id>` | Diff attempt workspace against original stored solution. |
+| | `coderecall recall compare <id>` | Diff attempt workspace against original stored solution (available post-submission or after reveal). |
 | | `coderecall recall capture <id>` | Promote submitted attempt code into the canonical solution archive. |
 | **Analytics** | `coderecall dashboard` | Terminal interactive overview with streak, due count, and retention. |
 | | `coderecall today` | Show reviews due today with deterministic priority ranking. |
@@ -324,8 +341,10 @@ achievements_enabled = true
 
 ### Optional Docker Runner
 To execute and verify code in an isolated environment without host permissions:
-- Requires Docker installed locally.
+- **Strictly Optional**: Core problem tracking, FSRS active recall, analytics, and Git versioning do **not** require Docker.
+- Invoked only when explicitly running `coderecall run <solution_file>`.
 - Mounts code with `--read-only`, drops Linux capabilities (`--cap-drop ALL`), drops privileges (`--security-opt no-new-privileges`), and isolates network (`--network none`).
+- Boundary: Suitable for developer practice; not intended for multi-tenant untrusted evaluation (see [docs/docker-execution-threat-model.md](docs/docker-execution-threat-model.md)).
 
 ### Optional AI Provider
 - By default, zero AI calls or network requests are made.
